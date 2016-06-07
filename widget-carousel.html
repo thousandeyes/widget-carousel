@@ -1,0 +1,613 @@
+<!--
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
+
+
+If you have questions or comments, please send them to
+primoz+carousel@thousandeyes.com, or to the following address:
+
+ThousandEyes, Inc.
+301 Howard Street #1700
+San Francisco, CA 94105
+Attn: ThousandEyes Open Source Projects
+
+http://thousandeyes.com
+
+-->
+<!DOCTYPE html>
+<html class="height-full">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.1.0/js.cookie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-powertip/1.2.0/jquery.powertip.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-powertip/1.2.0/css/jquery.powertip.min.css">
+    <title>ThousandEyes Widget Carousel</title>
+    <script>
+      /*
+       * Default values
+       */
+      var defaultWidgets = ['ztijwnjwjq', 'ryqrmflcau', 'pqoyppfyfl', 'qlneqykdfl', 'ciukkilkaa', 'gwihncvsdr'];
+      var defaultLoopTime = 5;
+      var defaultLayout = 'full-screen';
+
+
+
+      /*
+       * Structures and constants
+       */
+      var widgetURL = 'https://embed.thousandeyes.com/e/';
+
+      // Structure that holds widget positions for all layouts
+      var widgetLayoutPositions = {
+        'full-screen': {0:[]},
+        'two-horizontal': {0:[], 1:[]},
+        'two-vertical': {0:[], 1:[]},
+        'two-two': {0:[], 1:[], 2:[], 3:[]}
+      }
+      // Position loop times
+      var positionLoopTimes = {
+        'full-screen': {0:defaultLoopTime},
+        'two-horizontal': {0:defaultLoopTime, 1:defaultLoopTime},
+        'two-vertical': {0:defaultLoopTime, 1:defaultLoopTime},
+        'two-two': {0:defaultLoopTime, 1:defaultLoopTime, 2:defaultLoopTime, 3:defaultLoopTime}
+      }
+      // Currently active widget in position
+      var activeWidgetInPosition = {
+        'full-screen': {0:''},
+        'two-horizontal': {0:'', 1:''},
+        'two-vertical': {0:'', 1:''},
+        'two-two': {0:'', 1:'', 2:'', 3:''}
+      }
+      // Position change timestamp
+      var positionLastChangeTimestamp = {
+        'full-screen': {0:0},
+        'two-horizontal': {0:0, 1:0},
+        'two-vertical': {0:0, 1:0},
+        'two-two': {0:0, 1:0, 2:0, 3:0}
+      }
+
+
+      /*
+       * Initial setup
+       */
+      var widgets = defaultWidgets;
+      var loopTime = defaultLoopTime;
+      var currentLayout = defaultLayout;
+
+      // Read cookie settings
+      if (typeof Cookies.get('widgets') != 'undefined') {
+        widgets = Cookies.getJSON('widgets');
+      }
+      if (typeof Cookies.get('widgetLayoutPositions') != 'undefined') {
+        widgetLayoutPositions = Cookies.getJSON('widgetLayoutPositions');
+      }
+      if (typeof Cookies.get('positionLoopTimes') != 'undefined') {
+        positionLoopTimes = Cookies.getJSON('positionLoopTimes');
+      }
+      if (typeof Cookies.get('currentLayout') != 'undefined') {
+        currentLayout = Cookies.get('currentLayout');
+      }
+      // Widget configuration panel is currently active on this widget position
+      var widgetPanelNo = 0;
+
+      // Is a widget currently being dragged?
+      var dragged = false;
+
+      $(document).ready(function() {
+        timeLoop();
+
+        $('#layout-button').mouseover(function() {
+          $('#layout-bar').fadeIn();
+        });
+        $('#layout-bar').mouseleave(function() {
+          $('#layout-bar').delay(2000).fadeOut();
+        });
+        $('#layout-bar button').click(function() {
+          $('#layout-bar button').removeClass('active');
+          $(this).addClass('active');
+        });
+        $('#full-screen-button').click(function() {
+          setupLayout('full-screen');
+        });
+        $('#two-horizontal-button').click(function() {
+          setupLayout('two-horizontal');
+        });
+        $('#two-vertical-button').click(function() {
+          setupLayout('two-vertical');
+        });
+        $('#two-two-button').click(function() {
+          setupLayout('two-two');
+        });
+        $('.mini-close').click(function() {
+            $('#widget-panel').hide();
+            $('.widget[widget-id="' + activeWidgetInPosition[currentLayout][widgetPanelNo] + '"]').fadeIn();
+        });
+
+        $('#btn-add-widget').click(function() {
+          var widget = $('#text-add-widget').val().trim();
+          if(/(.*)src="(.+)"(.+)/i.test(widget)) {
+            // User can paste complete iframe code from TE platform, isolate the URL
+            widget = widget.replace(/(.*)src="(.+)"(.+)/i, '$2');
+          }
+          // Remove the trailing slash, if any
+          widget = widget.replace(/\/$/, '');
+          // Expected string at this point is an URL or just a widget code, take the part after last slash
+          widget = '/' + widget;
+          var parts = widget.split("/");
+          widget = parts[parts.length - 1];
+
+          // We should be left with a widget code only
+          if (widget == widget.replace(/[^a-zA-Z0-9]/g, '')) {
+            // Widget code seems to be ok!
+          }
+          else {
+            return;
+          }
+
+          widgets.push(widget);
+          widgetLayoutPositions[currentLayout][widgetPanelNo].push(widget);
+
+          rebuildWidgetsMenu(widgetPanelNo);
+
+          $('#text-add-widget').val('');
+        });
+
+        $('#widget-loop-time').on('input', function (event) {
+          var val;
+          this.value = this.value.replace(/[^0-9]/g, '');
+          if (this.value == '') {
+            this.value = '';
+            val = defaultLoopTime;
+          }
+          else if (this.value < 1) {
+            this.value = 1;
+            val = this.value;
+          }
+          else if (this.value > 3600) {
+            this.value = 3600;
+            val = this.value;
+          }
+          else {
+            val = this.value;
+          }
+          positionLoopTimes[currentLayout][widgetPanelNo] = val;
+        });
+
+        $('.tooltip-se').powerTip({
+          placement: 'se'
+        });
+        $('.tooltip-sw').powerTip({
+          placement: 'sw'
+        });
+        $.powerTip.show($('#layout-button span'));
+        setTimeout(function () { $.powerTip.hide($('#layout-button span')); }, 5000);
+      });
+
+
+      /*
+       * Rebuilds the "Remove widgets" drop down menu in the widget settings,
+       * ensuring all the widgets present at this widget positions are included.
+       */
+      function rebuildWidgetsMenu (widgetPanelNo) {
+        $('#menu-remove-widget').html('');
+        for (var n = 0; n < widgetLayoutPositions[currentLayout][widgetPanelNo].length; n++) {
+          widget =  widgetLayoutPositions[currentLayout][widgetPanelNo][n];
+          $('#menu-remove-widget').append('<li><a id="remove-widget-' + widget + '" href="#">' + widgetURL + widget + '</a></li>');
+          $('#remove-widget-' + widget).click(function() {
+            widgets.splice($.inArray(widget, widgets), 1);
+            widgetLayoutPositions[currentLayout][widgetPanelNo].splice($.inArray(widget, widgetLayoutPositions[currentLayout][widgetPanelNo]), 1);
+            rebuildWidgetsMenu(widgetPanelNo);
+          });
+        }
+        if (widgetLayoutPositions[currentLayout][widgetPanelNo].length == 0) {
+          $('#panel-remove').hide();
+        }
+        else {
+          $('#panel-remove').show();
+        }
+        if (widgetLayoutPositions[currentLayout][widgetPanelNo].length < 2) {
+          $('#panel-time').hide();
+        }
+        else {
+          $('#panel-time').show();
+        }
+      }
+
+
+      /*
+       * This function is repeatably called by timeLoop every half a second
+       * and ensures all the widgets are position correctly based on layout
+       * and widget settings.
+       */
+      function setupLayout (layout) {
+        currentLayout = layout;
+
+        var currentWidgetPositionNo = $('#widgets > div').size();
+        var layoutWidgetPositionNo = 1;
+        var widgetPositionClass = 'widget-position droppable width-full height-full';
+
+        if (currentLayout == 'two-horizontal') {
+          layoutWidgetPositionNo = 2;
+          widgetPositionClass = 'widget-position droppable width-full height-half';
+        }
+        else if (currentLayout == 'two-vertical') {
+          layoutWidgetPositionNo = 2;
+          widgetPositionClass = 'widget-position droppable width-half height-full';
+        }
+        else if (currentLayout == 'two-two') {
+          layoutWidgetPositionNo = 4;
+          widgetPositionClass = 'widget-position droppable width-half height-half';
+        }
+
+        // We need layoutWidgetPositionNo widget positions, remove the rest
+        if (currentWidgetPositionNo > layoutWidgetPositionNo) {
+          $('#widgets > div').slice(layoutWidgetPositionNo).remove();
+        }
+        // We need layoutWidgetPositionNo widget positions, add them if needed
+        else if (currentWidgetPositionNo < layoutWidgetPositionNo) {
+          for (var n = currentWidgetPositionNo; n < layoutWidgetPositionNo; n++) {
+            $('#widgets').append('<div widget-position="' + n + '"></div>');
+          }
+        }
+
+        // Set class for all widget positions
+        $('#widgets > div').each(function () {
+          $(this).removeClass().addClass(widgetPositionClass);
+        });
+
+        // All widgets should have a position
+        for (var n = 0; n < widgets.length; n++) {
+          var widget = widgets[n];
+          // Does widget have a position?
+          var widgetPosition = -1;
+          for (var i = 0; i < layoutWidgetPositionNo; i++) {
+            if ($.inArray(widget, widgetLayoutPositions[currentLayout][i]) != -1) {
+              widgetPosition = i;
+            }
+          }
+          // Widget does not have a position, add it to an empty position.
+          // If no positions are empty, add it to the first position.
+          if (widgetPosition == -1) {
+            var emptyPosition = -1;
+            for (var i = 0; i < layoutWidgetPositionNo; i++) {
+              if (widgetLayoutPositions[currentLayout][i].length == 0) {
+                emptyPosition = i;
+                break;
+              }
+            }
+            if (emptyPosition != -1) {
+              widgetLayoutPositions[currentLayout][emptyPosition].push(widget);
+            }
+            else {
+              widgetLayoutPositions[currentLayout][0].push(widget);
+            }
+          }
+        }
+
+        // Store settings in a cookie
+        Cookies.set('widgets', widgets, { expires: 30 });
+        Cookies.set('widgetLayoutPositions', widgetLayoutPositions, { expires: 30 });
+        Cookies.set('positionLoopTimes', positionLoopTimes, { expires: 30 });
+        Cookies.set('currentLayout', currentLayout, { expires: 30 });
+
+
+        // Each widget has to have a DOM element, ensure that is true
+        for (var n = 0; n < widgets.length; n++) {
+          var widget = widgets[n];
+          var widgetInDom = false;
+          $('#widgets .widget').each(function () {
+            if ($(this).attr('widget-id') == widget) {
+              widgetInDom = true;
+              return;
+            }
+          });
+          // Widget has no DOM element, create it and append it to the first widget position
+          if (widgetInDom == false) {
+            $('#widgets .widget-position:first').append(' \
+              <div widget-id="' + widget + '" class="widget draggable width-full height-full"> \
+                <div class="width-full height-onetenth"> \
+                  <button type="button" class="btn btn-default btn-sm pull-right mini-cog tooltip-sw" title="Widget settings"><span class="glyphicon glyphicon-cog"></span></button> \
+                  <span class="pull-right mini-resize glyphicon glyphicon-resize-full tooltip-sw" title="Use your browser\'s zoom functions to resize the widgets"></span>\
+                  <span class="pull-right mini-move glyphicon glyphicon-move tooltip-sw" title="Drag the widget to move it into a different position"></span>\
+                </div> \
+                <div class="width-full height-ninetenth"> \
+                  <iframe name="' + widget + '" scrolling="no" frameborder="0" width="100%" height="100%" src="https://embed.thousandeyes.com/e/' + widget + '"></iframe> \
+                </div> \
+              </div> \
+            ');
+          }
+        }
+
+        // Move widget elements into their respective widget position elements
+        for (var n = 0; n < layoutWidgetPositionNo; n++) {
+          for (var i = 0; i < widgetLayoutPositions[currentLayout][n].length; i++) {
+            if (!$('.widget-position:nth-child(' + (n+1) + ')').is($('.widget[widget-id="' + widgetLayoutPositions[currentLayout][n][i] + '"]').parent())) {
+              $('.widget-position:nth-child(' + (n+1) + ')').append($('.widget[widget-id="' + widgetLayoutPositions[currentLayout][n][i] + '"]'));
+            }
+          }
+        }
+
+        // Add cogs to widget positions w/o widgets
+        $('.widget-position:not(:has(div))').append(' \
+          <div class="width-full height-full"> \
+            <div class="width-full height-onetenth"> \
+              <button type="button" class="btn btn-default btn-sm pull-right mini-cog tooltip-sw" title="Widget settings"><span class="glyphicon glyphicon-cog"></span></button> \
+            </div> \
+          </div> \
+        ');
+
+        $('.widget-position > div:only-child').show();
+
+        // Make widgets draggable and droppable in widget positions
+        $('.draggable').draggable({
+          cursor: 'move',
+          revert: 'invalid',
+          snap: '.droppable',
+          snapMode: 'outer',
+          snapTolerance: 20,
+          start: function(event, ui) {
+            dragged = true;
+            var draggable = this;
+            $('.droppable').addClass('drop-on-drag');
+            $('.droppable > div').each(function (i) {
+              if (this != draggable) {
+                $(this).hide();
+              }
+            });
+          },
+          stop: function(event, ui) {
+            dragged = false;
+            $('.droppable').removeClass('drop-on-drag');
+            $('.droppable > .widget').show();
+          }
+        });
+
+        $('.droppable').droppable({
+          hoverClass: "drop-hover",
+          drop: function(event, ui) {
+            ui.draggable.position( { of: $(this), my: 'left top', at: 'left top' } );
+            var newWidgetPosition = $(this).attr('widget-position');
+            var widget = ui.draggable.attr('widget-id');
+            var widgetAlreadyInPosition = false;
+            for (var n = 0; n < Object.keys(widgetLayoutPositions[currentLayout]).length; n++) {
+              if ($.inArray(widget, widgetLayoutPositions[currentLayout][n]) != -1) {
+                if (newWidgetPosition != n) {
+                  widgetLayoutPositions[currentLayout][n].splice($.inArray(widget, widgetLayoutPositions[currentLayout][n]), 1);
+                }
+                else {
+
+                }
+              }
+            }
+            if (widgetAlreadyInPosition == false) {
+              widgetLayoutPositions[currentLayout][newWidgetPosition].push(widget);
+            }
+            $('.widget').css('left', '').css('top', '');
+          }
+        });
+
+        // Rotate widgets in position
+        for (var n = 0; n < Object.keys(widgetLayoutPositions[currentLayout]).length; n++) {
+          if (positionLastChangeTimestamp[currentLayout][n] + (positionLoopTimes[currentLayout][n] * 1000) < Date.now()) {
+            // Time to Rotate
+            var currentWidget = activeWidgetInPosition[currentLayout][n];
+            var currentWidgetNo = $.inArray(currentWidget, widgetLayoutPositions[currentLayout][n]);
+            var nextWidgetNo = -1;
+            if (currentWidgetNo == -1) {
+              // Current widget is not in this position, start from the start
+              if (widgetLayoutPositions[currentLayout][n].length > 0) {
+                nextWidgetNo = 0;
+              }
+            }
+            else {
+              nextWidgetNo = currentWidgetNo + 1;
+            }
+            if (nextWidgetNo >= widgetLayoutPositions[currentLayout][n].length) {
+              nextWidgetNo = 0;
+            }
+            nextWidget = widgetLayoutPositions[currentLayout][n][nextWidgetNo];
+            activeWidgetInPosition[currentLayout][n] = nextWidget;
+            positionLastChangeTimestamp[currentLayout][n] = Date.now();
+
+            $('.widget-position[widget-position="' + n + '"] > div.widget').hide();
+
+            if ((widgetPanelNo == n) && $('#widget-panel').is(':visible')) {
+              // Widget panel is open, do not display the widget
+            }
+            else {
+              $('.widget[widget-id="' + nextWidget + '"]').show();
+            }
+          }
+        }
+
+        $('.mini-cog').click(function() {
+            widgetPanelNo = Number($(this).parent().parent().parent().attr('widget-position'));
+            rebuildWidgetsMenu(widgetPanelNo);
+            $('.widget-position:nth-child(' + (widgetPanelNo+1) + ') .widget').hide();
+            $('#widget-panel').fadeIn();
+            $('.widget-position:nth-child(' + (widgetPanelNo+1) + ')').prepend($('#widget-panel'));
+            $('#widget-loop-time').val(positionLoopTimes[currentLayout][widgetPanelNo]);
+        });
+      }
+
+
+
+      /*
+       * Calls setupLayout() every half a second, unless one of the widgets is just being dragged
+       */
+      function timeLoop() {
+        tid = setTimeout(timeLoop, 500); // loop myself
+
+        if (dragged == false) {
+          setupLayout(currentLayout);
+        }
+      }
+
+    </script>
+
+    <style>
+      #navbar-cog {
+        z-index: 10;
+        position: absolute;
+        top: 5px;
+        right: 5px;
+      }
+      .width-full {
+        width: 100%;
+        min-width: 100%;
+      }
+      .width-half {
+        width: 50%;
+        min-width: 50%;
+        float: left;
+      }
+      .height-full {
+        height: 100%;
+        min-height: 100%;
+      }
+      .height-half {
+        height: 50%;
+        min-height: 50%;
+      }
+      .height-ninetenth {
+        height: 90%;
+        min-height: 90%;
+      }
+      .height-onetenth {
+        height: 10%;
+        min-height: 10%;
+      }
+      .draggable {
+        cursor: move;
+      }
+      .drop-on-drag {
+        background: #eeeeee;
+        border-radius: 10px;
+        border: 2px dotted #aaaaaa;
+      }
+      .drop-hover {
+        background: #dddddd;
+        border: 2px dotted #aaaaaa;
+      }
+      #layout-button {
+        z-index: 50;
+        position: absolute;
+        top: 5px;
+        left: 5px;
+      }
+      #layout-bar {
+        display: none;
+        z-index: 60;
+        position: absolute;
+        top: 5px;
+        left: 5px;
+      }
+      .mini-cog {
+        margin-top: 2px;
+        border: none;
+        background: none;
+        color: #bbbbbb;
+      }
+      .mini-resize {
+        margin-top: 8px;
+        margin-right: 0px;
+        margin-left: 2px;
+        border: none;
+        cursor: default;
+        color: #bbbbbb;
+      }
+      .mini-move {
+        margin-top: 8px;
+        margin-right: 8px;
+        border: none;
+        cursor: move;
+        color: #bbbbbb;
+      }
+      .mini-cog:hover, .mini-resize:hover, .mini-move:hover {
+        color: black;
+        background: none;
+      }
+      #widget-panel {
+        display: none;
+      }
+      .panel-heading {
+        text-align: right;
+      }
+      .mini-close {
+        background: none;
+        border: none;
+        padding: 0;
+      }
+    </style>
+
+  </head>
+
+
+
+  <body class="height-full">
+
+    <button id="layout-button" type="button" class="btn btn-default"><span class="glyphicon glyphicon-cog tooltip-se" title="Change widget layout"></span></button>
+
+    <div id="layout-bar" class="btn-group" role="group">
+      <button id="full-screen-button" type="button" class="btn btn-default glyphicon glyphicon-stop active tooltip-se" title="Change layout: Full screen widget"></button>
+      <button id="two-horizontal-button" type="button" class="btn btn-default glyphicon glyphicon-menu-hamburger tooltip-se" title="Change layout: Two horizontal widgets"></button>
+      <button id="two-vertical-button"type="button" class="btn btn-default glyphicon glyphicon-pause tooltip-se" title="Change layout: Two vertical widgets"></button>
+      <button id="two-two-button" type="button" class="btn btn-default glyphicon glyphicon-th-large tooltip-se" title="Change layout: Four widgets"></button>
+    </div>
+
+    <div id="widget-panel" class="panel panel-default height-full width-full">
+      <div class="panel-heading">
+        <button type="button" class="btn btn-default btn-sm mini-close"><span class="glyphicon glyphicon-remove"></span></button>
+      </div>
+      <div class="panel-body">
+        <div class="input-group">
+          <input id="text-add-widget" type="text" class="form-control" placeholder="Embedded Widget URL">
+          <span class="input-group-btn">
+            <button id="btn-add-widget" class="btn btn-default">Add a Widget</button>
+          </span>
+        </div>
+        <div id="panel-remove">
+          <hr>
+          <div class="btn-group btn-group-justified">
+            <div class="btn-group" role="group">
+            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+              Remove Widgets <span class="caret"></span>
+            </button>
+            <ul id="menu-remove-widget" class="dropdown-menu">
+              <li role="separator" class="divider"></li>
+            </ul>
+          </div>
+          </div>
+        </div>
+        <div id="panel-time">
+          <hr>
+          <div class="input-group">
+            <span class="input-group-addon">Change widget every</span>
+            <input id="widget-loop-time" type="number" class="form-control" value="" min="1" max="3600">
+            <span class="input-group-addon">seconds</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="widgets" class="container-fluid row height-full"></div>
+
+  </body>
+</html>
