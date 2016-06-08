@@ -403,10 +403,10 @@ http://thousandeyes.com
           }
         });
 
-        // Rotate widgets in position
+        // Cycle widgets in the position
         for (var n = 0; n < Object.keys(widgetLayoutPositions[currentLayout]).length; n++) {
           if (positionLastChangeTimestamp[currentLayout][n] + (positionLoopTimes[currentLayout][n] * 1000) < Date.now()) {
-            // Time to Rotate
+            // Widget on this position is displayed more than configured time, time to cycle
             var currentWidget = activeWidgetInPosition[currentLayout][n];
             var currentWidgetNo = $.inArray(currentWidget, widgetLayoutPositions[currentLayout][n]);
             var nextWidgetNo = -1;
