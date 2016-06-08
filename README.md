@@ -1,24 +1,24 @@
 # Widget Carousel
 
-Widget Carousel is a simple proof of concept on how to use the ThousandEyes embedded widgets on the NOC screen.
+The Widget Carousel is a simple proof of concept on how to use the ThousandEyes embedded widgets on a NOC screen.
 
 ## Usage
 
-Read our [blog post on embedded widgets](https://blog.thousandeyes.com/using-embedded-report-widgets/). Embedded widgets are ThousandEyes report widgets you can display outside the application, embedded into a web site or displayed on the NOC screen.
+Read our [blog post on embedded widgets](https://blog.thousandeyes.com/using-embedded-report-widgets/). Embedded widgets are ThousandEyes report widgets that you can display outside the application, embedded into a web site or on a NOC screen.
 
-We cover how [you can embedded a widget in external site in our KB article](https://support.thousandeyes.com/entries/107855293-Embedding-report-widgets-in-external-web-sites).
+We cover how [you can embed a widget on an external site in our Knowledge Base article](https://support.thousandeyes.com/entries/107855293-Embedding-report-widgets-in-external-web-sites).
 
-The usage of the Widget Carousel is simple. Pull the HTML file into your local folder or your website and open it up in the browser. By default, example widgets will load up and start looping on the screen on a 5 second interval.
+The Widget Carousel is simple to use. Pull the HTML file into your local folder or website and open it in the browser. By default, example widgets will load up and start looping on the screen on a 5 second interval.
 
 You can change the layout to display a single widgets, two widgets in a vertical layout, two widgets in a horizontal layout or four widgets.
 
-Configured widgets will automatically populate all layout positions, with the remaining widgets being looped in the first position. You can add or remove the widgets on a specific position by clicking the widget settings button. You drag currently displayed widget to another position.
+Configured widgets will automatically populate all layout positions, with the remaining widgets being looped in the first position. You can add or remove the widgets in a specific position by clicking the widget's gear icon. Use the drag cursor to move a currently displayed widget to another position.
 
-To add a new widget you need a HTML code we provide when [you export the widget](https://support.thousandeyes.com/entries/107855293-Embedding-report-widgets-in-external-web-sites). You can add the widget by using either complete code, URL or widget code only.
+To add a new widget you'll need the HTML code provided by ThousandEyes when you select the embedding option on a widget. You can add the widget by using either the complete code, URL or only the widget code.
 
 Widget sizes do not adjust to the screen size automatically. Once you have the chosen layout set up, use browser integrated zoom functions to adjust the size of the widgets.
 
-All Widget Carousel settings are locally stored in your browser using browser cookies. Due to browser security restrictions, Widget Carousel settings are not persistent if you open the file locally - try serving the HTML via HTTP server.
+All settings for the widget carousel are locally stored in your browser using browser cookies. Due to browser security restrictions, the settings do not persists if you open the file locally - if this is the case, try serving the HTML via HTTP server.
 
 ## License
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
