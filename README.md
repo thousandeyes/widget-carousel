@@ -1,6 +1,6 @@
 # Widget Carousel
 
-The Widget Carousel is a simple proof of concept on how to use the ThousandEyes embedded widgets on a NOC screen.
+The widget carousel is a simple proof of concept on how to use the ThousandEyes embedded widgets on a NOC screen.
 
 ## Usage
 
@@ -8,15 +8,15 @@ Read our [blog post on embedded widgets](https://blog.thousandeyes.com/using-emb
 
 We cover how [you can embed a widget on an external site in our Knowledge Base article](https://support.thousandeyes.com/entries/107855293-Embedding-report-widgets-in-external-web-sites).
 
-The Widget Carousel is simple to use. Pull the HTML file into your local folder or website and open it in the browser. By default, example widgets will load up and start looping on the screen on a 5 second interval.
+The widget carousel is simple to use. Pull the HTML file into your local folder or website and open it in the browser. By default, example widgets will load up and start cycling on the screen on a 5 second interval.
 
-You can change the layout to display a single widgets, two widgets in a vertical layout, two widgets in a horizontal layout or four widgets.
+You can change the layout to display a single widget, two widgets in a vertical layout, two widgets in a horizontal layout or four widgets.
 
-Configured widgets will automatically populate all layout positions, with the remaining widgets being looped in the first position. You can add or remove the widgets in a specific position by clicking the widget's gear icon. Use the drag cursor to move a currently displayed widget to another position.
+Configured widgets will automatically populate all layout positions, with the remaining widgets being cycled in the first position. You can add or remove the widgets in a specific position by clicking the widget's gear icon. Use the drag cursor to move a currently displayed widget to another position.
 
 To add a new widget you'll need the HTML code provided by ThousandEyes when you select the embedding option on a widget. You can add the widget by using either the complete code, URL or only the widget code.
 
-Widget sizes do not adjust to the screen size automatically. Once you have the chosen layout set up, use browser integrated zoom functions to adjust the size of the widgets.
+Depending on your screen ratio, some widgets may be cropped and may not adjust to the window size automatically. Use the browser integrated zoom functions to adjust the size of the widgets as needed.
 
 All settings for the widget carousel are locally stored in your browser using browser cookies. Due to browser security restrictions, the settings do not persists if you open the file locally - if this is the case, try serving the HTML via HTTP server.
 
