@@ -90,6 +90,8 @@ http://thousandeyes.com
       var widgets = defaultWidgets;
       var loopTime = defaultLoopTime;
       var currentLayout = defaultLayout;
+      var previousMiniCogSelector;
+
 
       // Read cookie settings
       if (typeof Cookies.get('widgets') != 'undefined') {
@@ -437,7 +439,11 @@ http://thousandeyes.com
           }
         }
 
-        $('.mini-cog').click(function() {
+        if (previousMiniCogSelector) {
+          previousMiniCogSelector.off('click');
+        }
+        
+        previousMiniCogSelector = $('.mini-cog').click(function() {
             widgetPanelNo = Number($(this).parent().parent().parent().attr('widget-position'));
             rebuildWidgetsMenu(widgetPanelNo);
             $('.widget-position:nth-child(' + (widgetPanelNo+1) + ') .widget').hide();
